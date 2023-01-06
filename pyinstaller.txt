@@ -1,0 +1,1 @@
+pyinstaller mlm.py --onefile --hidden-import sklearn.neighbors._partition_nodes
