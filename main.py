@@ -23,6 +23,7 @@ from sklearn.svm import SVC
 from sklearn.metrics import mean_absolute_error
 from sklearn.metrics import accuracy_score
 from pandastable import Table
+from queue import Queue
 
 
 # Order: select_file, load_csv, train, show results
@@ -44,8 +45,10 @@ class LearningModel:
         self.evaluation_type = 1
         self.threads_or_processes = 1  # threads for GUI interaction
         self.all_processes = []
-        self.queue = multiprocessing.Queue()
-        self.lock = threading.Lock()
+        # self.queue = multiprocessing.Queue()
+        self.queue = Queue()
+        self.lock_thread = threading.Lock()
+        self.lock_process = multiprocessing.Lock()
         self.computeCount = 0
 
     def select_file(self):
@@ -172,21 +175,24 @@ class LearningModel:
         else:
             buttonAbort.config(state="disabled")
         print("Training data...")
-        buttonTrain.config(state="disabled")
-        buttonTrain.config(text="Computing...")
+
         for name, model in self.models:
-            checkList[name].config(fg="red")
             self.computeCount += 1
             if self.threads_or_processes == 1:
-                t = threading.Thread(target=self.computation, args=(name, model, self.queue, self.lock))
+                checkList[name].config(fg="red")
+                buttonTrain.config(state="disabled")
+                buttonTrain.config(text="Computing...")
+                t = threading.Thread(target=self.computation, args=(name, model, self.queue, self.lock_thread))
                 t.daemon = True
                 t.start()
             else:
-                process = multiprocessing.Process(target=self.computation, args=(name, model, self.queue, self.lock))
+                buttonResults.config(state="normal")
+                process = multiprocessing.Process(target=self.computation, args=(name, model, self.queue))
+                process.daemon = True
                 process.start()
                 self.all_processes.append(process)
 
-    def computation(self, name, model, queue, lock):
+    def computation(self, name, model, queue, lock=None):
         print(name, " started...")
         model.fit(self.X_train, self.Y_train)
         Y_pred = model.predict(self.X_test)
@@ -201,16 +207,17 @@ class LearningModel:
         # acc_score_estimate=mean_absolute_error(self.Y_test,Y_pred)
         print(name, " result: ", acc_score_class, acc_score_estimate)
         queue.put((name, acc_score_class, acc_score_estimate))
-        lock.acquire()
-        checkList[name].config(fg="green")
-        # print("Queue Size: ",queue.qsize())
-        if queue.qsize() == self.computeCount:
-            buttonTrain.config(state="normal")
-            buttonTrain.config(text="Train")
-            buttonResults.config(state="normal")
-        # print("Pred: ",Y_pred)
-        # print("Real: ",self.Y_test)
-        lock.release()
+        if lock is not None:
+            lock.acquire()
+            checkList[name].config(fg="green")
+            # print("Queue Size: ",queue.qsize())
+            if queue.qsize() == self.computeCount:
+                buttonTrain.config(state="normal")
+                buttonTrain.config(text="Train")
+                buttonResults.config(state="normal")
+            # print("Pred: ",Y_pred)
+            # print("Real: ",self.Y_test)
+            lock.release()
 
     def computation_selection(self, var):
         self.threads_or_processes = var.get()
@@ -349,10 +356,9 @@ if __name__ == "__main__":
 
 
     def on_closing():
-        machine.abort_computation()  # only works when using processes instead of threads
+        machine.abort_computation()  # only relevant using processes instead of threads
         window.destroy()
 
 
     window.protocol("WM_DELETE_WINDOW", on_closing)
-
     window.mainloop()
