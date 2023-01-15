@@ -48,7 +48,7 @@ class LearningModel:
         # self.queue = multiprocessing.Queue()
         self.queue = Queue()
         self.lock_thread = threading.Lock()
-        self.lock_process = multiprocessing.Lock()
+        # self.lock_process = multiprocessing.Lock()  # not used since processes don't share memory
         self.computeCount = 0
 
     def select_file(self):
