@@ -1,10 +1,10 @@
 import pandas as pd
 import matplotlib.pyplot as plt
 import tkinter as tk
-import multiprocessing
-import threading
 from tkinter import filedialog as fd
 from tkinter import ttk
+import multiprocessing  # high CPU usage
+import threading  # GUI interaction
 from pandas.plotting import scatter_matrix
 from sklearn.model_selection import train_test_split
 from sklearn.linear_model import LogisticRegression
@@ -25,6 +25,7 @@ from sklearn.metrics import accuracy_score
 from pandastable import Table
 
 
+# Order: select_file, load_csv, train, show results
 class LearningModel:
     def __init__(self):
         self.path = ""
@@ -41,7 +42,7 @@ class LearningModel:
         self.results_class = []
         self.results_estimate = []
         self.evaluation_type = 1
-        self.processes_or_threads = 2
+        self.threads_or_processes = 1  # threads for GUI interaction
         self.all_processes = []
         self.queue = multiprocessing.Queue()
         self.lock = threading.Lock()
@@ -112,12 +113,11 @@ class LearningModel:
     # csv_table.show()
 
     def define_variables(self):
-        #		self.X=self.df.iloc[:,:-1].values
-        #		self.Y=self.df.iloc[:,-1].values
+        # self.X=self.df.iloc[:,:-1].values
+        # self.Y=self.df.iloc[:,-1].values
         self.X = self.df.loc[:, self.df.columns != varColumn.get()].values
         self.Y = self.df.loc[:, varColumn.get()].values.astype(int)
-        self.X_train, self.X_test, self.Y_train, self.Y_test = train_test_split(self.X, self.Y, test_size=0.2,
-                                                                                random_state=42)
+        self.X_train, self.X_test, self.Y_train, self.Y_test = train_test_split(self.X, self.Y, test_size=0.2, random_state=42)
         print("X:", self.X.shape, " Y:", self.Y.shape)
         print("X_train:", self.X_train.shape, " Y_train: ", self.Y_train.shape)
         print("X_test:", self.X_test.shape, " Y_test: ", self.Y_test.shape)
@@ -135,7 +135,7 @@ class LearningModel:
     def algorithm_selection(self, var_list):
         self.models.clear()
         if var_list[0].get() == 1:
-            #			self.models.append(("LR",LogisticRegression(solver="liblinear",multi_class="ovr")))
+            # self.models.append(("LR",LogisticRegression(solver="liblinear",multi_class="ovr")))
             self.models.append(("LR", LogisticRegression()))
         if var_list[1].get() == 1:
             self.models.append(("LDA", LinearDiscriminantAnalysis()))
@@ -150,7 +150,7 @@ class LearningModel:
         if var_list[6].get() == 1:
             self.models.append(("NB", GaussianNB()))
         if var_list[7].get() == 1:
-            #			self.models.append(("SVM", SVC(gamma="auto")))
+            # self.models.append(("SVM", SVC(gamma="auto")))
             self.models.append(("SVM", SVC()))
         print("Algorithms selected...", var_list[0].get(), var_list[1].get(), var_list[2].get(), var_list[3].get(),
               var_list[4].get(), var_list[5].get(), var_list[6].get(), var_list[7].get())
@@ -167,7 +167,7 @@ class LearningModel:
         self.computeCount = 0
         while not self.queue.empty():
             self.queue.get()
-        if self.processes_or_threads == 1:
+        if self.threads_or_processes == 2:
             buttonAbort.config(state="normal")
         else:
             buttonAbort.config(state="disabled")
@@ -177,14 +177,14 @@ class LearningModel:
         for name, model in self.models:
             checkList[name].config(fg="red")
             self.computeCount += 1
-            if self.processes_or_threads == 1:
-                process = multiprocessing.Process(target=self.computation, args=(name, model, self.queue, self.lock))
-                process.start()
-                self.all_processes.append(process)
-            else:
+            if self.threads_or_processes == 1:
                 t = threading.Thread(target=self.computation, args=(name, model, self.queue, self.lock))
                 t.daemon = True
                 t.start()
+            else:
+                process = multiprocessing.Process(target=self.computation, args=(name, model, self.queue, self.lock))
+                process.start()
+                self.all_processes.append(process)
 
     def computation(self, name, model, queue, lock):
         print(name, " started...")
@@ -213,8 +213,8 @@ class LearningModel:
         lock.release()
 
     def computation_selection(self, var):
-        self.processes_or_threads = var.get()
-        print("Computation chosen: ", self.processes_or_threads)
+        self.threads_or_processes = var.get()
+        print("Computation chosen: ", self.threads_or_processes)
 
     def evaluation_selection(self, var):
         self.evaluation_type = var.get()
@@ -237,6 +237,7 @@ class LearningModel:
         plt.ylim([0, 1])
         plt.show()
 
+    # only works when using processes instead of threads
     def abort_computation(self):
         print("Abort existing computation...")
         for process in self.all_processes:
@@ -274,17 +275,14 @@ if __name__ == "__main__":
     labelFile.grid(column=0, row=1, padx=2, pady=2, sticky="news", columnspan=2)
     buttonFile = tk.Button(leftFrame, text="Select File", font=("Arial", 15), command=machine.select_file, width=20)
     buttonFile.grid(column=0, row=2, padx=2, pady=2, sticky="news")
-    buttonLoad = tk.Button(leftFrame, text="Load CSV", font=("Arial", 15), command=machine.load_csv, width=20,
-                           state="disabled")
+    buttonLoad = tk.Button(leftFrame, text="Load CSV", font=("Arial", 15), command=machine.load_csv, width=20, state="disabled")
     buttonLoad.grid(column=1, row=2, padx=2, pady=2, sticky="news")
 
     labelVisual = tk.Label(leftFrame, text="Visualization", font=("Arial", 15, "underline"), anchor="w")
     labelVisual.grid(column=0, row=3, padx=2, pady=10, sticky="news", columnspan=2)
-    buttonHisto = tk.Button(leftFrame, text="Histogram", font=("Arial", 15), command=machine.show_histo, width=20,
-                            state="disabled")
+    buttonHisto = tk.Button(leftFrame, text="Histogram", font=("Arial", 15), command=machine.show_histo, width=20, state="disabled")
     buttonHisto.grid(column=0, row=4, padx=2, pady=2, sticky="news")
-    buttonScatter = tk.Button(leftFrame, text="Scatter Matrix", font=("Arial", 15), command=machine.show_scatter,
-                              width=20, state="disabled")
+    buttonScatter = tk.Button(leftFrame, text="Scatter Matrix", font=("Arial", 15), command=machine.show_scatter, width=20, state="disabled")
     buttonScatter.grid(column=1, row=4, padx=2, pady=2, sticky="news")
 
     varLR = tk.IntVar(value=1)
@@ -297,79 +295,61 @@ if __name__ == "__main__":
     varSVM = tk.IntVar(value=1)
     varList = [varLR, varLDA, varKNN, varGBC, varDT, varRF, varNB, varSVM]
     comboColor = "green"
-    labelAlgorithms = tk.Label(leftFrame, text="Algorithms (red=computing)", font=("Arial", 15, "underline"),
-                               anchor="w")
+    labelAlgorithms = tk.Label(leftFrame, text="Algorithms (red=computing)", font=("Arial", 15, "underline"), anchor="w")
     labelAlgorithms.grid(column=0, row=5, padx=2, pady=10, sticky="news", columnspan=2)
-    checkLR = tk.Checkbutton(leftFrame, text="LR - Logistic Regression", font=("Arial", 10), variable=varLR, onvalue=1,
-                             offvalue=0, command=lambda: machine.algorithm_selection(varList), fg=comboColor)
+    checkLR = tk.Checkbutton(leftFrame, text="LR - Logistic Regression", font=("Arial", 10), variable=varLR, onvalue=1, offvalue=0, command=lambda: machine.algorithm_selection(varList), fg=comboColor)
     checkLR.grid(column=0, row=6, padx=2, pady=2, sticky="w", columnspan=2)
-    checkLDA = tk.Checkbutton(leftFrame, text="LDA - Linear Discriminant Analyses", font=("Arial", 10), variable=varLDA,
-                              onvalue=1, offvalue=0, command=lambda: machine.algorithm_selection(varList), fg=comboColor)
+    checkLDA = tk.Checkbutton(leftFrame, text="LDA - Linear Discriminant Analyses", font=("Arial", 10), variable=varLDA, onvalue=1, offvalue=0, command=lambda: machine.algorithm_selection(varList), fg=comboColor)
     checkLDA.grid(column=0, row=7, padx=2, pady=2, sticky="w", columnspan=2)
-    checkKNN = tk.Checkbutton(leftFrame, text="KNN - K-Nearest Neighbors Classifier", font=("Arial", 10),
-                              variable=varKNN, onvalue=1, offvalue=0,
-                              command=lambda: machine.algorithm_selection(varList), fg=comboColor)
+    checkKNN = tk.Checkbutton(leftFrame, text="KNN - K-Nearest Neighbors Classifier", font=("Arial", 10), variable=varKNN, onvalue=1, offvalue=0, command=lambda: machine.algorithm_selection(varList), fg=comboColor)
     checkKNN.grid(column=0, row=8, padx=2, pady=2, sticky="w", columnspan=2)
-    checkGBC = tk.Checkbutton(leftFrame, text="GBC - Gradient Boosting Classifier", font=("Arial", 10), variable=varGBC,
-                              onvalue=1, offvalue=0, command=lambda: machine.algorithm_selection(varList), fg=comboColor)
+    checkGBC = tk.Checkbutton(leftFrame, text="GBC - Gradient Boosting Classifier", font=("Arial", 10), variable=varGBC, onvalue=1, offvalue=0, command=lambda: machine.algorithm_selection(varList), fg=comboColor)
     checkGBC.grid(column=0, row=9, padx=2, pady=2, sticky="w", columnspan=2)
-    checkDT = tk.Checkbutton(leftFrame, text="DT - Decision Tree Classifier", font=("Arial", 10), variable=varDT,
-                             onvalue=1, offvalue=0, command=lambda: machine.algorithm_selection(varList), fg=comboColor)
+    checkDT = tk.Checkbutton(leftFrame, text="DT - Decision Tree Classifier", font=("Arial", 10), variable=varDT, onvalue=1, offvalue=0, command=lambda: machine.algorithm_selection(varList), fg=comboColor)
     checkDT.grid(column=1, row=6, padx=2, pady=2, sticky="w", columnspan=2)
-    checkRF = tk.Checkbutton(leftFrame, text="RF - Random Forest Classifier", font=("Arial", 10), variable=varRF,
-                             onvalue=1, offvalue=0, command=lambda: machine.algorithm_selection(varList), fg=comboColor)
+    checkRF = tk.Checkbutton(leftFrame, text="RF - Random Forest Classifier", font=("Arial", 10), variable=varRF, onvalue=1, offvalue=0, command=lambda: machine.algorithm_selection(varList), fg=comboColor)
     checkRF.grid(column=1, row=7, padx=2, pady=2, sticky="w", columnspan=2)
-    checkNB = tk.Checkbutton(leftFrame, text="NB - Gaussian Naive Bayes", font=("Arial", 10), variable=varNB, onvalue=1,
-                             offvalue=0, command=lambda: machine.algorithm_selection(varList), fg=comboColor)
+    checkNB = tk.Checkbutton(leftFrame, text="NB - Gaussian Naive Bayes", font=("Arial", 10), variable=varNB, onvalue=1, offvalue=0, command=lambda: machine.algorithm_selection(varList), fg=comboColor)
     checkNB.grid(column=1, row=8, padx=2, pady=2, sticky="w", columnspan=2)
-    checkSVM = tk.Checkbutton(leftFrame, text="SVM - Support Vector Machines", font=("Arial", 10), variable=varSVM,
-                              onvalue=1, offvalue=0, command=lambda: machine.algorithm_selection(varList), fg=comboColor)
+    checkSVM = tk.Checkbutton(leftFrame, text="SVM - Support Vector Machines", font=("Arial", 10), variable=varSVM, onvalue=1, offvalue=0, command=lambda: machine.algorithm_selection(varList), fg=comboColor)
     checkSVM.grid(column=1, row=9, padx=2, pady=2, sticky="w", columnspan=2)
 
-    checkList = {"LR": checkLR, "LDA": checkLDA, "KNN": checkLDA, "GBC": checkGBC, "DT": checkDT, "RF": checkRF,
-                 "NB": checkNB, "SVM": checkSVM}
+    checkList = {"LR": checkLR, "LDA": checkLDA, "KNN": checkLDA, "GBC": checkGBC, "DT": checkDT, "RF": checkRF, "NB": checkNB, "SVM": checkSVM}
 
     varColumn = tk.StringVar()
     labelColumn = tk.Label(leftFrame, text="Column to predict", font=("Arial", 15, "underline"), anchor="w")
     labelColumn.grid(column=0, row=10, padx=2, pady=10, sticky="news", columnspan=2)
-    #	labelCombobox=tk.Label(window,text="Column for result: ",font=("Arial",10), anchor="e")
-    #	labelCombobox.grid(column=0,row=13,padx=2,pady=2,sticky="e")
+    # labelCombobox=tk.Label(window,text="Column for result: ",font=("Arial",10), anchor="e")
+    # labelCombobox.grid(column=0,row=13,padx=2,pady=2,sticky="e")
     comboColumn = ttk.Combobox(leftFrame, textvariable=varColumn)
     comboColumn.grid(column=0, row=11, padx=2, pady=2, sticky="news", columnspan=2)
     comboColumn["state"] = "readonly"
 
-    varProcesses_Threads = tk.IntVar(value=2)
+    varThreads_Processes = tk.IntVar(value=1)  # Threads for GUI interaction
     labelAlgorithms = tk.Label(leftFrame, text="Computation", font=("Arial", 15, "underline"), anchor="w")
     labelAlgorithms.grid(column=0, row=12, padx=2, pady=10, sticky="news", columnspan=2)
-    radioProcesses = tk.Radiobutton(leftFrame, text="Processes (Linux)", variable=varProcesses_Threads, value=1,
-                                    command=lambda: machine.computation_selection(varProcesses_Threads))
-    # radioProcesses.grid(column=0,row=13,padx=2,pady=2, sticky="w")
-    radioThreads = tk.Radiobutton(leftFrame, text="Threads (Windows)", variable=varProcesses_Threads, value=2,
-                                  command=lambda: machine.computation_selection(varProcesses_Threads))
-    # radioThreads.grid(column=0,row=14,padx=2,pady=2, sticky="w")
-    buttonTrain = tk.Button(leftFrame, text="Train", font=("Arial", 15), command=machine.train, width=20,
-                            state="disabled")
-    buttonTrain.grid(column=0, row=13, padx=2, pady=2, sticky="news", columnspan=2)
-    buttonAbort = tk.Button(leftFrame, text="Abort Computation", font=("Arial", 15), command=machine.abort_computation,
-                            width=20, state="disabled")
+    radioThreads = tk.Radiobutton(leftFrame, text="Threads (GUI)", variable=varThreads_Processes, value=1, command=lambda: machine.computation_selection(varThreads_Processes))
+    # radioThreads.grid(column=0, row=13, padx=2, pady=2, sticky="w")
+    radioProcesses = tk.Radiobutton(leftFrame, text="Processes (CPU)", variable=varThreads_Processes, value=2, command=lambda: machine.computation_selection(varThreads_Processes))
+    # radioProcesses.grid(column=1, row=13, padx=2, pady=2, sticky="w")
+    buttonTrain = tk.Button(leftFrame, text="Train", font=("Arial", 15), command=machine.train, width=20, state="disabled")
+    buttonTrain.grid(column=0, row=14, padx=2, pady=2, sticky="news", columnspan=2)
+    buttonAbort = tk.Button(leftFrame, text="Abort Computation", font=("Arial", 15), command=machine.abort_computation, width=20, state="disabled")
     # buttonAbort.grid(column=1,row=14,padx=2,pady=2,sticky="news")
 
     varEvaluation = tk.IntVar(value=1)
     labelResults = tk.Label(leftFrame, text="Evaluation", font=("Arial", 15, "underline"), anchor="w")
     labelResults.grid(column=0, row=15, padx=2, pady=10, sticky="news", columnspan=2)
-    radioRegression = tk.Radiobutton(leftFrame, text="Classification", variable=varEvaluation, value=1,
-                                     command=lambda: machine.evaluation_selection(varEvaluation))
+    radioRegression = tk.Radiobutton(leftFrame, text="Classification", variable=varEvaluation, value=1, command=lambda: machine.evaluation_selection(varEvaluation))
     radioRegression.grid(column=0, row=16, padx=2, pady=2, sticky="w")
-    radioClassification = tk.Radiobutton(leftFrame, text="Regression", variable=varEvaluation, value=2,
-                                         command=lambda: machine.evaluation_selection(varEvaluation))
+    radioClassification = tk.Radiobutton(leftFrame, text="Regression", variable=varEvaluation, value=2, command=lambda: machine.evaluation_selection(varEvaluation))
     radioClassification.grid(column=0, row=17, padx=2, pady=2, sticky="w")
-    buttonResults = tk.Button(leftFrame, text="Show Results", font=("Arial", 15), command=machine.show_results, width=20,
-                              state="disabled")
+    buttonResults = tk.Button(leftFrame, text="Show Results", font=("Arial", 15), command=machine.show_results, width=20, state="disabled")
     buttonResults.grid(column=1, row=16, padx=2, pady=2, sticky="news", rowspan=2)
 
 
     def on_closing():
-        machine.abort_computation()
+        machine.abort_computation()  # only works when using processes instead of threads
         window.destroy()
 
 
