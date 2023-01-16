@@ -72,6 +72,7 @@ class LearningModel:
         buttonHisto.config(state="normal")
         buttonScatter.config(state="normal")
         buttonTrain.config(state="normal")
+        buttonTrain.config(text="Train")
         buttonAbort.config(state="normal")
         buttonResults.config(state="disabled")
         comboColumn["values"] = self.df.columns.values.tolist()
@@ -176,19 +177,20 @@ class LearningModel:
             buttonAbort.config(state="disabled")
         print("Training data...")
 
+        buttonTrain.config(state="disabled")
+        buttonTrain.config(text="Computing...")
+        buttonResults.config(state="disabled")
+
         for name, model in self.models:
             self.computeCount += 1
             if self.threads_or_processes == 1:
                 checkList[name].config(fg="red")
-                buttonTrain.config(state="disabled")
-                buttonTrain.config(text="Computing...")
-                t = threading.Thread(target=self.computation, args=(name, model, self.queue, self.lock_thread))
-                t.daemon = True
-                t.start()
+                thread = threading.Thread(target=self.computation, args=(name, model, self.queue, self.lock_thread))
+                thread.daemon = True
+                thread.start()
             else:
-                buttonResults.config(state="normal")
                 process = multiprocessing.Process(target=self.computation, args=(name, model, self.queue))
-                process.daemon = True
+                # process.daemon = True  # not necessary since terminated on_closing
                 process.start()
                 self.all_processes.append(process)
 
