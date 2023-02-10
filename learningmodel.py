@@ -206,6 +206,11 @@ class LearningModel:
         # acc_score_estimate=1-mean_absolute_percentage_error(self.Y_test,Y_pred)
         # acc_score_estimate=mean_absolute_error(self.Y_test,Y_pred)
         print(name, " result: ", acc_score_class, acc_score_estimate)
+
+        print("First 10 predictions (prediction<->test data):")
+        for i in range(10 if len(Y_pred) >= 10 else len(Y_pred)):
+            print(Y_pred[i], "<->", self.Y_test[i])
+
         queue.put((name, acc_score_class, acc_score_estimate))
         if lock is not None:
             lock.acquire()
