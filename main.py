@@ -15,6 +15,7 @@ if __name__ == "__main__":
     window.buttonLoad.configure(command=machine.load_csv)
     window.buttonHisto.configure(command=machine.show_histo)
     window.buttonScatter.configure(command=machine.show_scatter)
+    window.checkAllLogarithms.configure(command=lambda: machine.all_algorithms(window.varAllAlgorithms))
     window.checkLR.configure(command=lambda: machine.algorithm_selection(window.varList))
     window.checkLDA.configure(command=lambda: machine.algorithm_selection(window.varList))
     window.checkKNN.configure(command=lambda: machine.algorithm_selection(window.varList))

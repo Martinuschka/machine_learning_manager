@@ -1,6 +1,7 @@
 import pandas as pd
 import matplotlib.pyplot as plt
 from tkinter import filedialog as fd
+from tkinter import IntVar
 import multiprocessing  # high CPU usage
 import threading  # GUI interaction
 from pandas.plotting import scatter_matrix
@@ -157,7 +158,33 @@ class LearningModel:
         print("Algorithms selected...", var_list[0].get(), var_list[1].get(), var_list[2].get(), var_list[3].get(),
               var_list[4].get(), var_list[5].get(), var_list[6].get(), var_list[7].get())
 
+    def all_algorithms(self, var_check_all):
+        if var_check_all.get() == 1:
+            self.window.varLR.set(1)
+            self.window.varLDA.set(1)
+            self.window.varKNN.set(1)
+            self.window.varGBC.set(1)
+            self.window.varDT.set(1)
+            self.window.varRF.set(1)
+            self.window.varNB.set(1)
+            self.window.varSVM.set(1)
+            self.algorithm_selection([IntVar(value=1), IntVar(value=1), IntVar(value=1), IntVar(value=1), IntVar(value=1), IntVar(value=1), IntVar(value=1), IntVar(value=1)])
+        else:
+            self.window.varLR.set(0)
+            self.window.varLDA.set(0)
+            self.window.varKNN.set(0)
+            self.window.varGBC.set(0)
+            self.window.varDT.set(0)
+            self.window.varRF.set(0)
+            self.window.varNB.set(0)
+            self.window.varSVM.set(0)
+            self.algorithm_selection([IntVar(value=0), IntVar(value=0), IntVar(value=0), IntVar(value=0), IntVar(value=0), IntVar(value=0), IntVar(value=0), IntVar(value=0)])
+
     def train(self):
+        if not self.models:
+            print("No algorithms selected")
+            return None
+
         self.abort_computation()
         print("Selecting data...")
         self.define_variables()
@@ -207,7 +234,7 @@ class LearningModel:
         # acc_score_estimate=mean_absolute_error(self.Y_test,Y_pred)
         print(name, " result: ", acc_score_class, acc_score_estimate)
 
-        print("First 10 predictions (prediction<->test data):")
+        print("First predictions (prediction<->test data):")
         for i in range(10 if len(Y_pred) >= 10 else len(Y_pred)):
             print(Y_pred[i], "<->", self.Y_test[i])
 
