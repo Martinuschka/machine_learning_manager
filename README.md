@@ -9,3 +9,13 @@ each of the 8 algorithms runs in separate processes/threads
 result as diagram for classification or regression
 
 (using tkinter for window GUI)
+
+## algorithms
+- LR, LogisticRegression
+- LDA, LinearDiscriminantAnalysis
+- KNN, KNeighborsClassifier
+- GBC, GradientBoostingClassifier
+- DT, DecisionTreeClassifier
+- RF, RandomForestClassifier
+- NB, GaussianNB
+- SVM, SVC (SupportVectorClassifier)
