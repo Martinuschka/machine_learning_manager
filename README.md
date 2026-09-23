@@ -10,6 +10,11 @@ result as diagram for classification or regression
 
 (using tkinter for window GUI)
 
+## csv requirements
+- UTF8
+- comma delimiter
+- dot for decimal seperator
+
 ## algorithms
 - LR, LogisticRegression
 - LDA, LinearDiscriminantAnalysis
